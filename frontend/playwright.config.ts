@@ -1,9 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const backend = resolve(__dirname, '../backend')
-const frontend = resolve(__dirname)
+const frontend = resolve(fileURLToPath(new URL('.', import.meta.url)))
+const backend = resolve(frontend, '../backend')
 const venvPython = resolve(backend, process.platform === 'win32'
   ? '.venv/Scripts/python.exe'
   : '.venv/bin/python')
