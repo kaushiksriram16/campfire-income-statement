@@ -1,0 +1,46 @@
+name: Rollup WASM isolated verification
+on:
+  push:
+    branches: [rollup-wasm-validation]
+  workflow_dispatch:
+jobs:
+  verify-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect baseline runtime and registry
+        working-directory: frontend
+        run: |
+          node --version
+          npm --version
+          npm view @rollup/wasm-node@4.68.1 version
+          npm view rollup@4.68.1 version
+      - name: Generate npm lockfile in clean experimental checkout
+        working-directory: frontend
+        run: npm install --package-lock-only
+      - name: Fresh install
+        working-directory: frontend
+        run: npm ci
+      - name: Verify actual WASM implementation
+        working-directory: frontend
+        run: |
+          npm ls rollup @rollup/wasm-node vite vitest
+          node --input-type=module -e "import('rollup').then(x=>console.log('rollup exports:', typeof x.rollup))"
+          node -e "const x=require('./node_modules/rollup/package.json'); if(x.name!=='@rollup/wasm-node') process.exit(1); console.log('verified installed rollup package:',x.name,x.version)"
+          if find node_modules/rollup -iname '*.node' | grep . ; then echo 'Native binary in WASM package'; exit 1; fi
+      - name: Frontend unit and build
+        working-directory: frontend
+        run: |
+          npm test
+          npm run build
+          npm audit --audit-level=moderate
+          npm audit --omit=dev --audit-level=moderate
+      - name: Emit npm-generated lock for commit
+        working-directory: frontend
+        run: |
+          echo 'BEGIN_WASM_LOCKFILE_B64'
+          base64 -w 80 package-lock.json
+          echo 'END_WASM_LOCKFILE_B64'
