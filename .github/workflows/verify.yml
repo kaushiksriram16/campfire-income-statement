@@ -26,6 +26,12 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
+      - name: Emit generated lockfile for version-controlled reproducibility
+        working-directory: frontend
+        run: |
+          echo 'BEGIN_LOCKFILE_B64'
+          base64 -w 80 package-lock.json
+          echo 'END_LOCKFILE_B64'
       - name: Inspect production and development advisories
         working-directory: frontend
         run: |
