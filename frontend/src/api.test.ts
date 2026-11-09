@@ -48,6 +48,9 @@ describe('successful API response validation', () => {
     ['missing section', (value: any) => { value.sections.pop() }],
     ['duplicate section', (value: any) => { value.sections[6].key = 'revenue' }],
     ['negative entry count', (value: any) => { value.posted_entries = -1 }],
+    ['invalid calendar date', (value: any) => { value.start = '2026-02-30' }],
+    ['invalid month', (value: any) => { value.end = '2026-13-01' }],
+    ['unsupported year zero', (value: any) => { value.start = '0000-01-01' }],
   ])('rejects %s in HTTP 200 JSON', async (_name, mutate) => {
     const value = validReport()
     mutate(value)
