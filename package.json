@@ -1,0 +1,13 @@
+{
+  "name": "campfire-income-statement",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Run the FastAPI and Vite development servers with one command.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "test:e2e": "npm run test:e2e --prefix frontend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,57 @@
+import { test, expect } from '@playwright/test'
+
+test('real React, Vite proxy, and FastAPI income statement flow', async ({ page }) => {
+  const requests: string[] = []
+  const failures: string[] = []
+  const pageErrors: string[] = []
+  page.on('request', request => {
+    if (request.url().includes('/income-statement?')) requests.push(request.url())
+  })
+  page.on('response', response => {
+    if (response.url().includes('/income-statement?') && !response.ok())
+      failures.push(`${response.status()}: ${response.url()}`)
+  })
+  page.on('requestfailed', request => {
+    if (request.url().includes('/income-statement?'))
+      failures.push(request.failure()?.errorText || 'Request failed')
+  })
+  page.on('pageerror', error => pageErrors.push(error.message))
+
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Northwind Coffee Roasters' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('(44,480.14)')).toBeVisible()
+  await expect(page.getByText('2026-01-01 to 2026-03-31 · USD')).toBeVisible()
+
+  const start = page.getByLabel('Start Date')
+  const end = page.getByLabel('End Date')
+  async function generate(from: string, to: string) {
+    await start.fill(from)
+    await end.fill(to)
+    await expect(page.getByRole('heading', { name: 'Northwind Coffee Roasters' })).toBeVisible()
+    await page.getByRole('button', { name: 'Generate Statement' }).click()
+    await expect(page.getByText(`${from} to ${to} · USD`)).toBeVisible()
+  }
+
+  await generate('2025-12-01', '2025-12-31')
+  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('5,000.00')).toBeVisible()
+
+  await generate('2026-02-01', '2026-02-28')
+  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('(13,230.25)')).toBeVisible()
+
+  await generate('2030-01-01', '2030-12-31')
+  await expect(page.getByText('No posted transactions in this period. All amounts are zero.')).toBeVisible()
+
+  await start.fill('2026-04-01')
+  await end.fill('2026-03-01')
+  await page.getByRole('button', { name: 'Generate Statement' }).click()
+  await expect(page.getByRole('alert').getByText('End date must be on or after start date.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Reset to Q1 2026' }).click()
+  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('(44,480.14)')).toBeVisible()
+  await expect(start).toHaveValue('2026-01-01')
+  await expect(end).toHaveValue('2026-03-31')
+  expect(requests.length).toBeGreaterThanOrEqual(5)
+  expect(requests.every(url => url.startsWith('http://127.0.0.1:5173/income-statement?'))).toBe(true)
+  expect(failures).toEqual([])
+  expect(pageErrors).toEqual([])
+})
