@@ -19,9 +19,11 @@ test('real React, Vite proxy, and FastAPI income statement flow', async ({ page 
   })
   page.on('pageerror', error => pageErrors.push(error.message))
 
+  const netIncome = page.locator('.metric').filter({ hasText: 'Net Income' }).locator('strong')
+
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Northwind Coffee Roasters' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('(44,480.14)')).toBeVisible()
+  await expect(netIncome).toHaveText('(44,480.14)')
   await expect(page.getByText('2026-01-01 to 2026-03-31 · USD')).toBeVisible()
 
   const start = page.getByLabel('Start Date')
@@ -35,10 +37,10 @@ test('real React, Vite proxy, and FastAPI income statement flow', async ({ page 
   }
 
   await generate('2025-12-01', '2025-12-31')
-  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('5,000.00')).toBeVisible()
+  await expect(netIncome).toHaveText('5,000.00')
 
   await generate('2026-02-01', '2026-02-28')
-  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('(13,230.25)')).toBeVisible()
+  await expect(netIncome).toHaveText('(13,230.25)')
 
   await generate('2030-01-01', '2030-12-31')
   await expect(page.getByText('No posted transactions in this period. All amounts are zero.')).toBeVisible()
@@ -49,7 +51,7 @@ test('real React, Vite proxy, and FastAPI income statement flow', async ({ page 
   await expect(page.getByRole('alert').getByText('End date must be on or after start date.')).toBeVisible()
 
   await page.getByRole('button', { name: 'Reset to Q1 2026' }).click()
-  await expect(page.getByRole('region', { name: 'Financial summary' }).getByText('(44,480.14)')).toBeVisible()
+  await expect(netIncome).toHaveText('(44,480.14)')
   await expect(start).toHaveValue('2026-01-01')
   await expect(end).toHaveValue('2026-03-31')
   expect(requests.length).toBeGreaterThanOrEqual(5)
