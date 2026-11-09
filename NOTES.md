@@ -30,6 +30,6 @@ The original ledger has **15 accounts** and **25 entries**, including **20 poste
 
 AI assisted with implementation, architecture, tests, UI, and documentation. One AI result **not treated as trusted** was the written expected account and period totals: these were independently recalculated from the original posted journal lines using integer cents instead of copying the output from the production function. This is an example of an untrusted result and its check, not a claim that AI demonstrably made a mistake.
 
-## With more time
+## Verification, remediations, and next steps
 
-Run and extend automated interaction/browser tests across browsers, add stronger runtime JSON schema validation, and review error states with an accountant.
+The red-team follow-up added explicit malformed-JSON checks, exact string-based frontend money formatting, per-line monetary bounds and precision-safe aggregation, a committed npm lockfile, CI dependency audits, browser integration tests, and single-command development startup. An npm security audit originally reported three development-tool advisories (Vitest, tinypool, @vitest/mocker); the patched test-runner dependency tree was separately audited with no findings. Re-run audits whenever dependencies change. Future work: extend cross-browser coverage and review additional accounting fixtures with an accountant.
