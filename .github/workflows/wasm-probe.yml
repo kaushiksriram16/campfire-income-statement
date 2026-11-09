@@ -18,14 +18,18 @@ jobs:
           npm --version
           npm view @rollup/wasm-node@4.68.1 version
           npm view rollup@4.68.1 version
+      - name: Try npm 11 resolver for alias dependencies
+        run: npm install --global npm@11
       - name: Regenerate lockfile from manifest in isolated runner
         working-directory: frontend
         run: |
           rm package-lock.json
           npm install
-      - name: Fresh install
+      - name: Fresh install with npm 10 after npm 11 lock generation
         working-directory: frontend
-        run: npm ci
+        run: |
+          npm install --global npm@10.9.9
+          npm ci
       - name: Verify actual WASM implementation
         working-directory: frontend
         run: |
