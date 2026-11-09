@@ -112,4 +112,17 @@ describe('report controls', () => {
     expect(await screen.findByRole('heading', { name: 'Renamed Ledger Company' })).toBeTruthy()
   })
 
+  it('shows a controlled error for a malformed successful API response', async () => {
+    const user = userEvent.setup()
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ company: 'Northwind', sections: null }),
+    } as Response))
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
+    expect((await screen.findByRole('alert')).textContent)
+      .toBe('The server returned an invalid income statement response.')
+    expect(screen.queryByRole('region', { name: 'Financial summary' })).toBeNull()
+  })
+
 })

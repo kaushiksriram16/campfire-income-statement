@@ -18,5 +18,64 @@ export async function fetchIncomeStatement(
     }
     throw new Error(message)
   }
-  return response.json() as Promise<IncomeStatement>
+  let payload: unknown
+  try {
+    payload = await response.json()
+  } catch {
+    throw new Error('The server returned invalid JSON.')
+  }
+  return validateIncomeStatement(payload)
+}
+
+/** Validate the server JSON contract before React renders the statement. */
+const SECTION_KEYS = [
+  'revenue', 'cogs', 'gross_profit', 'operating_expenses',
+  'operating_income', 'other_income', 'net_income',
+] as const
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function isDate(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function isMoney(value: unknown): value is string {
+  return typeof value === 'string' && /^-?(?:0|[1-9]\d*)\.\d{2}$/.test(value)
+}
+
+function isAccountLine(value: unknown): boolean {
+  return isObject(value) && isText(value.number) && isText(value.name) &&
+    isText(value.subtype) && isMoney(value.amount)
+}
+
+function isSection(value: unknown): boolean {
+  return isObject(value) && SECTION_KEYS.some(key => key === value.key) &&
+    isText(value.title) && isMoney(value.total) &&
+    Array.isArray(value.lines) && value.lines.every(isAccountLine)
+}
+
+export function validateIncomeStatement(value: unknown): IncomeStatement {
+  if (!isObject(value) || !isText(value.company) || !isText(value.currency) ||
+      !isDate(value.start) || !isDate(value.end) ||
+      !Number.isSafeInteger(value.posted_entries) ||
+      (value.posted_entries as number) < 0 ||
+      !Array.isArray(value.sections) ||
+      value.sections.length !== SECTION_KEYS.length ||
+      !value.sections.every(isSection) ||
+      !SECTION_KEYS.every(key => value.sections.some(
+        (section: unknown) => isObject(section) && section.key === key
+      )) ||
+      !isObject(value.summary) ||
+      !isMoney(value.summary.revenue) ||
+      !isMoney(value.summary.gross_profit) ||
+      !isMoney(value.summary.net_income)) {
+    throw new Error('The server returned an invalid income statement response.')
+  }
+  return value as unknown as IncomeStatement
 }
