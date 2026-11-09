@@ -18,9 +18,11 @@ jobs:
           npm --version
           npm view @rollup/wasm-node@4.68.1 version
           npm view rollup@4.68.1 version
-      - name: Generate npm lockfile in clean experimental checkout
+      - name: Regenerate lockfile from manifest in isolated runner
         working-directory: frontend
-        run: npm install
+        run: |
+          rm package-lock.json
+          npm install
       - name: Fresh install
         working-directory: frontend
         run: npm ci
