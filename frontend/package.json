@@ -27,6 +27,8 @@
     "@playwright/test": "^1.56.0"
   },
   "overrides": {
-    "rollup": "npm:@rollup/wasm-node@4.68.1"
+    "vite": {
+      "rollup": "npm:@rollup/wasm-node@4.68.1"
+    }
   }
 }
