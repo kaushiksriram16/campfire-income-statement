@@ -32,6 +32,7 @@ jobs:
           node -e "const x=require('./node_modules/rollup/package.json'); console.log('installed rollup name/version:',x.name,x.version); const lock=require('./package-lock.json'); console.log('lock rollup entry:',JSON.stringify(lock.packages['node_modules/rollup']));"
           npm view @rollup/wasm-node@4.68.1 version
           npm view @rollup/wasm-node@4.68.1 dist.tarball
+          node -e "const x=require('./node_modules/rollup/package.json'); if(x.name!=='@rollup/wasm-node') {console.error('Override failed: still using native rollup'); process.exit(1)} console.log('WASM confirmed',x.version)"
           if find node_modules/rollup -iname '*.node' | grep . ; then echo 'Native binary in WASM package'; exit 1; fi
       - name: Frontend unit and build
         working-directory: frontend
