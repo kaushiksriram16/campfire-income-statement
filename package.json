@@ -8,6 +8,6 @@
     "test:e2e": "npm run test:e2e --prefix frontend"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
   }
 }

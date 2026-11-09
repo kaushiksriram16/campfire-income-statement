@@ -25,5 +25,8 @@
     "jsdom": "^27.0.0",
     "vitest": "^4.1.12",
     "@playwright/test": "^1.56.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

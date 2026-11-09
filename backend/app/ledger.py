@@ -129,5 +129,5 @@ def load_ledger(path=None):
     try:
         with open(path or LEDGER_PATH, encoding="utf-8") as handle:
             return validate_ledger(json.load(handle))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise LedgerError("Unable to load a valid ledger") from exc

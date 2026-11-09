@@ -94,3 +94,14 @@ def test_malformed_json_is_controlled_http_500(tmp_path, monkeypatch, path, valu
         "start": "2026-01-01", "end": "2026-03-31"})
     assert result.status_code == 500
     assert result.json()["detail"].startswith("Invalid ledger:")
+
+def test_invalid_utf8_ledger_returns_controlled_error(tmp_path, monkeypatch):
+    path = tmp_path / "ledger.json"
+    path.write_bytes(b"\\xff\\xfe\\x80")
+    monkeypatch.setattr(ledger_module, "LEDGER_PATH", path)
+    with pytest.raises(ledger_module.LedgerError, match="Unable to load a valid ledger"):
+        ledger_module.load_ledger()
+    response = client.get("/income-statement", params={
+        "start": "2026-01-01", "end": "2026-03-31"})
+    assert response.status_code == 500
+    assert response.json()["detail"].startswith("Invalid ledger:")
