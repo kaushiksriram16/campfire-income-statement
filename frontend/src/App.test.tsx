@@ -65,4 +65,31 @@ describe('report controls', () => {
     expect(start.value).toBe('2026-01-01')
     expect(end.value).toBe('2026-03-31')
   })
+  it('retains company metadata when the reporting dates change', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const heading = await screen.findByRole('heading', { name: 'Dynamic Test Company' })
+    const start = screen.getByLabelText('Start Date')
+    await user.clear(start)
+    await user.type(start, '2025-12-01')
+    expect(heading.textContent).toBe('Dynamic Test Company')
+    expect(screen.queryByText('2026-01-01 to 2026-03-31 · USD')).toBeNull()
+  })
+
+  it('refreshes the company metadata from the next successful API response', async () => {
+    const user = userEvent.setup()
+    let name = 'Dynamic Test Company'
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'http://localhost')
+      return { ok: true, json: async () => ({
+        ...report(url.searchParams.get('start')!, url.searchParams.get('end')!),
+        company: name,
+      }) } as Response
+    })
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Dynamic Test Company' })
+    name = 'Renamed Ledger Company'
+    await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
+    expect(await screen.findByRole('heading', { name: 'Renamed Ledger Company' })).toBeTruthy()
+  })
 })

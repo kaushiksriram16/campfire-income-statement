@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchIncomeStatement } from './api'
 import type { IncomeStatement } from './types'
+import { formatMoney } from './formatMoney'
 
 const DEFAULT_START = '2026-01-01'
 const DEFAULT_END = '2026-03-31'
 
-function money(value: string, currency: string): string {
-  const number = Number(value)
-  const formatted = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(Math.abs(number))
-  return number < 0 ? `(${formatted})` : formatted
-}
 
 function Statement({ report }: { report: IncomeStatement }) {
   return (
@@ -31,7 +25,7 @@ function Statement({ report }: { report: IncomeStatement }) {
           </thead>
           <tbody>
             {report.sections.map((section) => (
-              <FragmentSection key={section.key} section={section} currency={report.currency} />
+              <FragmentSection key={section.key} section={section} />
             ))}
           </tbody>
         </table>
@@ -44,11 +38,8 @@ function Statement({ report }: { report: IncomeStatement }) {
   )
 }
 
-function FragmentSection({
-  section, currency,
-}: {
+function FragmentSection({ section }: {
   section: IncomeStatement['sections'][number]
-  currency: string
 }) {
   const isFinal = section.key === 'net_income'
   const isCalculated = ['gross_profit', 'operating_income', 'net_income'].includes(section.key)
@@ -56,7 +47,7 @@ function FragmentSection({
     return (
       <tr className={isFinal ? 'final-total' : 'calculated-total'}>
         <th scope="row">{section.title}</th>
-        <td className="amount">{money(section.total, currency)}</td>
+        <td className="amount">{formatMoney(section.total)}</td>
       </tr>
     )
   }
@@ -66,12 +57,12 @@ function FragmentSection({
       {section.lines.map((line) => (
         <tr key={line.number} className="account-row">
           <td><span className="account-number">{line.number}</span>{line.name}</td>
-          <td className="amount">{money(line.amount, currency)}</td>
+          <td className="amount">{formatMoney(line.amount)}</td>
         </tr>
       ))}
       <tr className="subtotal">
         <th scope="row">Total {section.title}</th>
-        <td className="amount">{money(section.total, currency)}</td>
+        <td className="amount">{formatMoney(section.total)}</td>
       </tr>
     </>
   )
@@ -81,6 +72,8 @@ export default function App() {
   const [start, setStart] = useState(DEFAULT_START)
   const [end, setEnd] = useState(DEFAULT_END)
   const [report, setReport] = useState<IncomeStatement | null>(null)
+  const [company, setCompany] = useState<string | null>(null)
+  const [currency, setCurrency] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const requestId = useRef(0)
@@ -107,7 +100,11 @@ export default function App() {
     setLoading(true)
     try {
       const result = await fetchIncomeStatement(from, to, abort.signal)
-      if (current === requestId.current) setReport(result)
+      if (current === requestId.current) {
+        setCompany(result.company)
+        setCurrency(result.currency)
+        setReport(result)
+      }
     } catch (cause) {
       if (current === requestId.current && !abort.signal.aborted) {
         setError(cause instanceof Error ? cause.message : 'A network error occurred.')
@@ -153,8 +150,8 @@ export default function App() {
         <div className="brand-mark">C</div>
         <div>
           <p className="eyebrow">FINANCIAL OVERVIEW</p>
-          <h1>{report?.company ?? (loading ? 'Loading company…' : 'Income Statement')}</h1>
-          <p className="header-subtitle">Income Statement · {report?.currency ?? 'Reporting currency from ledger'}</p>
+          <h1>{company ?? (loading ? 'Loading company…' : 'Income Statement')}</h1>
+          <p className="header-subtitle">Income Statement · {currency ?? 'Reporting currency from ledger'}</p>
         </div>
       </header>
       <section className="controls-panel" aria-labelledby="reporting-heading">
@@ -197,7 +194,7 @@ export default function App() {
             ] as const).map(([label, value]) => (
               <div className="metric" key={label}>
                 <p>{label}</p>
-                <strong>{money(value, report.currency)}</strong>
+                <strong>{formatMoney(value)}</strong>
                 <small>{report.currency}</small>
               </div>
             ))}
