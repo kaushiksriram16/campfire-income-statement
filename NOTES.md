@@ -32,4 +32,4 @@ AI assisted with implementation, architecture, tests, UI, and documentation. One
 
 ## With more time
 
-Run and extend automated interaction/browser tests across browsers, add stronger runtime JSON schema validation, and review error states with an accountant. A separate screen-share video (5 minutes maximum) is still required.
+Run and extend automated interaction/browser tests across browsers, add stronger runtime JSON schema validation, and review error states with an accountant.

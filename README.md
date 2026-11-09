@@ -95,14 +95,3 @@ The default dates are 2026-01-01 to 2026-03-31, but the report supports other va
 6. `backend/tests/` covers expected accounting figures, periods, reversals, precision, invalid inputs, endpoint behavior, and per-request source reload.
 
 The original `ledger.json` is kept at repository root. No P&L values, company names, or account numbers are hardcoded in the application presentation or accounting rules. Account subtype determines classification, and inactive accounts are included in their historical reporting periods.
-
-## Five-minute screen-share outline
-
-- **0:00–0:45** Show initial Q1 report, company heading and summary.
-- **0:45–1:30** Change reporting dates; show Generate and Reset controls, including an empty period.
-- **1:30–2:30** Trace `App.tsx` → `api.ts` → FastAPI → `ledger.py` → `statement.py`.
-- **2:30–3:45** Explain Decimal money, posting status filtering, contra revenue, and credit reductions to expenses.
-- **3:45–4:30** Run tests and discuss independently reconciled Q1 totals.
-- **4:30–5:00** Show the tools and AI workflow you actually used, one verification decision, and potential next improvements.
-
-Record and submit this video separately; the repository does not contain a recording.
