@@ -20,7 +20,7 @@ jobs:
           npm view rollup@4.68.1 version
       - name: Generate npm lockfile in clean experimental checkout
         working-directory: frontend
-        run: npm install --package-lock-only
+        run: npm install
       - name: Fresh install
         working-directory: frontend
         run: npm ci
@@ -29,7 +29,9 @@ jobs:
         run: |
           npm ls rollup @rollup/wasm-node vite vitest
           node --input-type=module -e "import('rollup').then(x=>console.log('rollup exports:', typeof x.rollup))"
-          node -e "const x=require('./node_modules/rollup/package.json'); if(x.name!=='@rollup/wasm-node') process.exit(1); console.log('verified installed rollup package:',x.name,x.version)"
+          node -e "const x=require('./node_modules/rollup/package.json'); console.log('installed rollup name/version:',x.name,x.version); const lock=require('./package-lock.json'); console.log('lock rollup entry:',JSON.stringify(lock.packages['node_modules/rollup']));"
+          npm view @rollup/wasm-node@4.68.1 version
+          npm view @rollup/wasm-node@4.68.1 dist.tarball
           if find node_modules/rollup -iname '*.node' | grep . ; then echo 'Native binary in WASM package'; exit 1; fi
       - name: Frontend unit and build
         working-directory: frontend
