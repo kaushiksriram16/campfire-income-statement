@@ -2,14 +2,14 @@
 
 An accountant-readable income statement application for any inclusive reporting period, backed by the original official Campfire `ledger.json`. Its seven sections and account-level totals are calculated server-side; the React page uses native date inputs and renders exact financial strings.
 
-## Stack and supported environment
+## Supported and verified versions
 
-- **Backend:** Python 3.12+, FastAPI, Uvicorn, `Decimal`, pytest, FastAPI TestClient
-- **Frontend:** Node.js 22+, npm, React 19, TypeScript 5.9, Vite 7, native dates, Fetch API, CSS
-- **Testing:** Vitest, React Testing Library, Playwright Chromium, GitHub Actions
-- No database, authentication, Docker, custom calendar, or unnecessary runtime dependencies.
+- **Minimum supported:** Python 3.12+, Node.js >=22.12.0, a compatible npm 10+; React 19, Vite 7, TypeScript 5.9. Use `backend/requirements*.txt` and `frontend/package-lock.json` for exact dependency versions.
+- **Verified in Linux GitHub Actions:** Python **3.12.16**, Node.js **22.23.4**, npm **10.9.9**; FastAPI **0.162.2**, Uvicorn **0.54.0**, pytest **9.2.0**, HTTPX **0.28.1**; React **19.3.1**, Vite **7.3.7**, TypeScript **5.9.3**, Vitest **4.1.12**, Playwright **1.65.0**, and **@rollup/wasm-node 4.68.1**.
+- **Candidate's Windows development machine:** exact Python, Node.js, npm and policy configuration **not accessible for verification here**. Check with `python --version`, `node --version`, `npm --version`.
+- No database, authentication, Docker, custom calendar or deployment dependencies.
 
-GitHub Actions uses Python 3.12, Node.js 22 and the frontend's committed npm lockfile. Use the actual installed versions from `python --version`, `node --version`, and `npm --version` when comparing environments.
+Versions listed for CI refer to successfully executed workflows; operating-system-specific CI coverage is separate from testing the candidate's restricted device.
 
 ## One-time installation
 
@@ -47,7 +47,7 @@ From the **repository root** on macOS, Linux or Windows:
 npm run dev
 ```
 
-This starts FastAPI at **http://127.0.0.1:8000** and Vite at **http://127.0.0.1:5173**. The development proxy forwards requests from React to FastAPI. Python reload and Vite hot reload remain enabled. Press **Ctrl+C** to stop both services.
+This starts FastAPI at **http://127.0.0.1:8000** and Vite at **http://127.0.0.1:5173**. The development proxy forwards requests from React to FastAPI. Python reload and Vite hot reload remain enabled. Press **Ctrl+C** to stop both services. The root launcher is `scripts/dev.mjs` and does not contain Rollup-loader patches or any `ROLLUP_WASM_PATH` dependency.
 
 Alternatively, start each service in separate terminals after installation:
 
@@ -61,6 +61,31 @@ npm run dev
 
 FastAPI documentation: **http://127.0.0.1:8000/docs**.
 
+## Rollup WASM on restricted Windows machines
+
+Vite 7 uses Rollup 4. This project installs the official **@rollup/wasm-node@4.68.1** as `rollup`, through a direct npm alias and an npm override. A clean `npm ci` uses the committed npm-generated lockfile. No file under `node_modules` needs to be edited.
+
+The exact `frontend/package.json` configuration is:
+
+```json
+"devDependencies": {
+  "rollup": "npm:@rollup/wasm-node@4.68.1"
+},
+"overrides": {
+  "rollup": "$rollup"
+}
+```
+
+The excerpt shows only the Rollup-specific keys, not the entire manifest. Confirm the installation inside `frontend/` with:
+
+```bash
+npm ci
+npm ls rollup @rollup/wasm-node vite vitest
+node -e "const p=require('rollup/package.json'); console.log(p.name,p.version)"
+```
+
+The last command must output `@rollup/wasm-node 4.68.1`. Linux CI checks this directly; normal hosted Windows CI cannot reproduce a company-managed Windows App Control policy. For a restricted machine, **run a fresh installation without editing third-party files** and obtain organizational approval if its policy blocks any remaining executable or WASM content. Never disable security controls.
+
 ## Tests, build, and dependency security
 
 ```bash
@@ -70,13 +95,14 @@ python -m pytest -v
 # From frontend/
 npm test
 npm run build
+npm ls rollup @rollup/wasm-node vite vitest
 npm audit --json
 npm audit --omit=dev --json
 npx playwright install chromium    # one-time browser download
 npm run test:e2e
 ```
 
-Playwright starts a real backend and Vite server and tests the complete flow in Chromium. On a clean Ubuntu CI runner, use `npx playwright install --with-deps chromium` to install browser system dependencies.
+Playwright starts a real backend and Vite server and tests the complete flow in Chromium. If your Linux environment is missing Chromium system libraries, install them using approved system package procedures. CI uses `npx playwright install chromium` on hosted runners to avoid unrelated third-party apt repository failures.
 
 The `frontend/package-lock.json` is committed and CI uses `npm ci` for reproducibility. GitHub Actions runs backend tests, frontend tests, audits, build, browser smoke, and root startup checks. The root script uses your local `backend/.venv`; it does not automatically install dependencies.
 
@@ -90,7 +116,7 @@ curl "http://127.0.0.1:8000/income-statement?start=2026-01-01&end=2026-03-31"
 
 Response fields: `company`, `currency`, `start`, `end`, `posted_entries`, `sections` (ordered section keys, titles, account lines and totals), and `summary`. Amounts are **signed, two-decimal strings**; negative values use parentheses only in the frontend.
 
-The initial date fields are preselected for Q1 2026, but the page displays instructions until **Generate Statement** is clicked. **Reset to Q1 2026** restores those dates without automatically generating a report. The user may select any valid dates from year 0001 to 9999 are accepted; period bounds are inclusive. Invalid dates and reversed ranges return HTTP 422. Invalid source ledgers return a controlled HTTP 500 response. Empty periods return a statement with zero balances.
+The initial date fields are preselected for Q1 2026, but the page displays instructions until **Generate Statement** is clicked. **Reset to Q1 2026** restores those dates without automatically generating a report. Any valid dates from years 0001 through 9999 are accepted; period bounds are inclusive. Invalid dates and reversed ranges return HTTP 422. Invalid source ledgers return a controlled HTTP 500 response. Empty periods return a statement with zero balances.
 
 ## Money and accounting rules
 
