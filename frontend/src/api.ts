@@ -61,14 +61,15 @@ function isSection(value: unknown): boolean {
 }
 
 export function validateIncomeStatement(value: unknown): IncomeStatement {
+  const sections = isObject(value) && Array.isArray(value.sections)
+    ? value.sections : null
   if (!isObject(value) || !isText(value.company) || !isText(value.currency) ||
       !isDate(value.start) || !isDate(value.end) ||
       !Number.isSafeInteger(value.posted_entries) ||
       (value.posted_entries as number) < 0 ||
-      !Array.isArray(value.sections) ||
-      value.sections.length !== SECTION_KEYS.length ||
-      !value.sections.every(isSection) ||
-      !SECTION_KEYS.every(key => value.sections.some(
+      !sections || sections.length !== SECTION_KEYS.length ||
+      !sections.every(isSection) ||
+      !SECTION_KEYS.every(key => sections.some(
         (section: unknown) => isObject(section) && section.key === key
       )) ||
       !isObject(value.summary) ||
