@@ -27,4 +27,4 @@ Additional tests check alternate months, posting status, inactive accounts, reve
 AI helped draft code, tests, the UI and documentation. I did **not** trust its initially proposed expected totals without checking: I independently recomputed each account and the Q1 bottom line from posted journal lines. This documents a verified result, not an invented AI error.
 
 ## Next with more time
-Test on the candidate’s restricted Windows environment and on macOS; expand cross-browser coverage, and review accounting edge cases with an accountant.
+Test on the candidate’s restricted Windows environment; expand cross-browser coverage, and review accounting edge cases with an accountant. Hosted Windows, Linux and macOS CI checks are separate from managed-device testing.

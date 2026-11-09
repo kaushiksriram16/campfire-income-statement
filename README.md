@@ -9,7 +9,7 @@ An accountant-readable income statement application for any inclusive reporting 
 - **Candidate's Windows development machine:** exact Python, Node.js, npm and policy configuration **not accessible for verification here**. Check with `python --version`, `node --version`, `npm --version`.
 - No database, authentication, Docker, custom calendar or deployment dependencies.
 
-Versions listed for CI refer to successfully executed workflows; operating-system-specific CI coverage is separate from testing the candidate's restricted device.
+GitHub Actions also verifies clean installation, unit tests and builds on hosted Windows and macOS. Hosted Windows runs a real Chromium browser-to-API smoke test. These checks cannot reproduce the candidate's restricted device policy.
 
 ## One-time installation
 
@@ -68,11 +68,13 @@ Vite 7 uses Rollup 4. This project installs the official **@rollup/wasm-node@4.6
 The exact `frontend/package.json` configuration is:
 
 ```json
-"devDependencies": {
-  "rollup": "npm:@rollup/wasm-node@4.68.1"
-},
-"overrides": {
-  "rollup": "$rollup"
+{
+  "devDependencies": {
+    "rollup": "npm:@rollup/wasm-node@4.68.1"
+  },
+  "overrides": {
+    "rollup": "$rollup"
+  }
 }
 ```
 
