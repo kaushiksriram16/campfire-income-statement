@@ -12,8 +12,10 @@ test('real React, Vite proxy, and FastAPI income statement flow', async ({ page 
       failures.push(`${response.status()}: ${response.url()}`)
   })
   page.on('requestfailed', request => {
-    if (request.url().includes('/income-statement?'))
-      failures.push(request.failure()?.errorText || 'Request failed')
+    const reason = request.failure()?.errorText
+    // React StrictMode cancels its first development-only request intentionally.
+    if (request.url().includes('/income-statement?') && reason !== 'net::ERR_ABORTED')
+      failures.push(reason || 'Request failed')
   })
   page.on('pageerror', error => pageErrors.push(error.message))
 
