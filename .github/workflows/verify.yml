@@ -35,6 +35,13 @@ jobs:
       - name: Install locked frontend dependencies
         working-directory: frontend
         run: npm ci
+      - name: Verify installed official Rollup WASM package
+        working-directory: frontend
+        run: |
+          npm ls rollup @rollup/wasm-node vite vitest
+          node -e "const p=require('rollup/package.json'); if(p.name!=='@rollup/wasm-node'||p.version!=='4.68.1') process.exit(1); console.log('WASM Rollup confirmed:',p.name,p.version)"
+          node --input-type=module -e "import('rollup').then(m=>{if(typeof m.rollup!=='function') process.exit(1)})"
+          if find node_modules/rollup -type f -name '*.node' | grep -q .; then echo 'Unexpected native Rollup module'; exit 1; fi
       - name: Check all dependency advisories
         working-directory: frontend
         run: npm audit --audit-level=moderate
@@ -49,7 +56,7 @@ jobs:
         run: npm run build
       - name: Install Chromium for Playwright
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Run real browser-to-API smoke test
         working-directory: frontend
         run: npm run test:e2e
@@ -82,3 +89,68 @@ jobs:
           cat /tmp/campfire-dev.log
           echo "Development server processes remained after stop"
           exit 1
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare Python environment
+        shell: pwsh
+        run: |
+          python --version
+          node --version
+          npm --version
+          python -m venv backend/.venv
+          backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
+      - name: Install dependencies without any native loader patch
+        working-directory: frontend
+        run: npm ci
+      - name: Verify WASM Rollup package on Windows
+        working-directory: frontend
+        run: |
+          npm ls rollup @rollup/wasm-node vite vitest
+          node -e "const p=require('rollup/package.json'); if(p.name!=='@rollup/wasm-node'||p.version!=='4.68.1') process.exit(1); console.log(p.name,p.version)"
+      - name: Test and build frontend
+        working-directory: frontend
+        run: |
+          npm test
+          npm run build
+          npm audit --audit-level=moderate
+          npm audit --omit=dev --audit-level=moderate
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install chromium
+      - name: Browser-to-API integration on Windows
+        working-directory: frontend
+        run: npm run test:e2e
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and test backend
+        run: |
+          python -m venv backend/.venv
+          backend/.venv/bin/python -m pip install -r backend/requirements-dev.txt
+          cd backend
+          .venv/bin/python -m pytest -q
+      - name: Fresh npm install and verify WASM on macOS
+        working-directory: frontend
+        run: |
+          npm ci
+          npm ls rollup @rollup/wasm-node vite vitest
+          node -e "const p=require('rollup/package.json'); if(p.name!=='@rollup/wasm-node'||p.version!=='4.68.1') process.exit(1); console.log(p.name,p.version)"
+          npm test
+          npm run build
