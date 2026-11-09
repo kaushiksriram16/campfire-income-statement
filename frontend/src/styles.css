@@ -53,3 +53,8 @@ td,tbody th{padding:13px 30px;border-bottom:1px solid #f0f2f5;text-align:left}
 .statement-footer{text-align:right;padding:18px 30px;font-size:11px;color:#91a0af}
 @media(max-width:760px){.page{padding:24px 14px 48px}.controls-panel{padding:20px}.control-actions{width:100%}.control-actions button{flex:1}.metrics{gap:10px}.metric{padding:15px}.metric strong{font-size:20px}.statement-head{padding:22px 17px}td,tbody th,thead th{padding-left:16px;padding-right:16px}}
 @media(max-width:480px){.metrics{grid-template-columns:1fr}.metric{padding:16px 20px}.metric p{margin-bottom:6px}.metric small{margin-top:1px}.page-header{align-items:flex-start}.account-number{width:49px}.control-actions{flex-direction:column}.control-actions button{width:100%}}
+
+.report-placeholder{background:white;border:1px dashed #cbd7e3;border-radius:13px;padding:55px 25px;text-align:center;color:#687c91}
+.report-placeholder h2{color:#29425d;font-size:18px;font-weight:700;margin:0 0 10px}
+.report-placeholder p{font-size:13px;line-height:1.6;margin:0}
+.report-placeholder strong{color:#29425d}

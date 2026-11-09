@@ -114,34 +114,36 @@ export default function App() {
     }
   }, [])
 
+  // Only fetch when the user requests a report. Abort outstanding work on unmount.
   useEffect(() => {
-    void generate(DEFAULT_START, DEFAULT_END)
     return () => {
       controller.current?.abort()
       requestId.current += 1
     }
-  }, [generate])
+  }, [])
+
+  const clearReport = () => {
+    controller.current?.abort()
+    requestId.current += 1
+    setReport(null)
+    setError('')
+    setLoading(false)
+  }
 
   const updateStart = (value: string) => {
     setStart(value)
-    setReport(null)
-    setError('')
-    controller.current?.abort()
-    requestId.current += 1
-    setLoading(false)
+    clearReport()
   }
+
   const updateEnd = (value: string) => {
     setEnd(value)
-    setReport(null)
-    setError('')
-    controller.current?.abort()
-    requestId.current += 1
-    setLoading(false)
+    clearReport()
   }
+
   const reset = () => {
     setStart(DEFAULT_START)
     setEnd(DEFAULT_END)
-    void generate(DEFAULT_START, DEFAULT_END)
+    clearReport()
   }
 
   return (
@@ -158,7 +160,7 @@ export default function App() {
         <div className="controls-heading">
           <div>
             <h2 id="reporting-heading">Reporting period</h2>
-            <p>Choose an inclusive date range to generate your statement.</p>
+            <p>Select a start date and end date, then click Generate Statement.</p>
           </div>
         </div>
         <form onSubmit={(event) => { event.preventDefault(); void generate(start, end) }}>
@@ -184,6 +186,12 @@ export default function App() {
         {error && <p className="error" role="alert">{error}</p>}
       </section>
       {loading && <p className="loading" role="status">Generating income statement…</p>}
+      {!loading && !report && !error && (
+        <section className="report-placeholder" aria-label="Report instructions">
+          <h2>Select a date range to view your income statement</h2>
+          <p>Choose your reporting dates above, then click <strong>Generate Statement</strong> to view the report.</p>
+        </section>
+      )}
       {report && !loading && (
         <>
           <section className="metrics" aria-label="Financial summary">

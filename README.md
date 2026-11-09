@@ -90,7 +90,7 @@ curl "http://127.0.0.1:8000/income-statement?start=2026-01-01&end=2026-03-31"
 
 Response fields: `company`, `currency`, `start`, `end`, `posted_entries`, `sections` (ordered section keys, titles, account lines and totals), and `summary`. Amounts are **signed, two-decimal strings**; negative values use parentheses only in the frontend.
 
-The default report is Q1 2026, but any valid dates from year 0001 to 9999 are accepted; period bounds are inclusive. Invalid dates and reversed ranges return HTTP 422. Invalid source ledgers return a controlled HTTP 500 response. Empty periods return a statement with zero balances.
+The initial date fields are preselected for Q1 2026, but the page displays instructions until **Generate Statement** is clicked. **Reset to Q1 2026** restores those dates without automatically generating a report. The user may select any valid dates from year 0001 to 9999 are accepted; period bounds are inclusive. Invalid dates and reversed ranges return HTTP 422. Invalid source ledgers return a controlled HTTP 500 response. Empty periods return a statement with zero balances.
 
 ## Money and accounting rules
 

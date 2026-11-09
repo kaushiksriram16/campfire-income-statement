@@ -38,45 +38,63 @@ describe('report controls', () => {
     vi.restoreAllMocks()
   })
 
-  it('loads the default report with a dynamic company heading', async () => {
+  it('shows date selection instructions without requesting a report on first load', () => {
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Dynamic Test Company' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Select a date range to view your income statement' })).toBeTruthy()
     expect((screen.getByLabelText('Start Date') as HTMLInputElement).value).toBe('2026-01-01')
     expect((screen.getByLabelText('End Date') as HTMLInputElement).value).toBe('2026-03-31')
-    expect(screen.getByText('No posted transactions in this period. All amounts are zero.')).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Financial summary' })).toBeNull()
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
-  it('generates for selected dates and resets the report to Q1', async () => {
+  it('generates the Q1 report only after clicking Generate Statement', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await screen.findByRole('heading', { name: 'Dynamic Test Company' })
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
+    expect(await screen.findByRole('heading', { name: 'Dynamic Test Company' })).toBeTruthy()
+    expect(screen.getByText('2026-01-01 to 2026-03-31 · USD')).toBeTruthy()
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('heading', { name: 'Select a date range to view your income statement' })).toBeNull()
+  })
+
+  it('generates selected dates and resets the date fields without fetching automatically', async () => {
+    const user = userEvent.setup()
+    render(<App />)
     const start = screen.getByLabelText('Start Date') as HTMLInputElement
     const end = screen.getByLabelText('End Date') as HTMLInputElement
-    // The native date fields dispatch input/change with ISO dates.
     await user.clear(start)
     await user.type(start, '2025-12-01')
     await user.clear(end)
     await user.type(end, '2025-12-31')
-    expect(screen.queryByText('2026-01-01 to 2026-03-31 · USD')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
     await waitFor(() => expect(screen.getByText('2025-12-01 to 2025-12-31 · USD')).toBeTruthy())
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
     await user.click(screen.getByRole('button', { name: 'Reset to Q1 2026' }))
-    await waitFor(() => expect(screen.getByText('2026-01-01 to 2026-03-31 · USD')).toBeTruthy())
     expect(start.value).toBe('2026-01-01')
     expect(end.value).toBe('2026-03-31')
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('region', { name: 'Financial summary' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Select a date range to view your income statement' })).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
+    await waitFor(() => expect(screen.getByText('2026-01-01 to 2026-03-31 · USD')).toBeTruthy())
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
-  it('retains company metadata when the reporting dates change', async () => {
+
+  it('retains company metadata when dates are edited', async () => {
     const user = userEvent.setup()
     render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
     const heading = await screen.findByRole('heading', { name: 'Dynamic Test Company' })
     const start = screen.getByLabelText('Start Date')
     await user.clear(start)
     await user.type(start, '2025-12-01')
     expect(heading.textContent).toBe('Dynamic Test Company')
     expect(screen.queryByText('2026-01-01 to 2026-03-31 · USD')).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Select a date range to view your income statement' })).toBeTruthy()
   })
 
-  it('refreshes the company metadata from the next successful API response', async () => {
+  it('refreshes company metadata from the next successful response', async () => {
     const user = userEvent.setup()
     let name = 'Dynamic Test Company'
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
@@ -87,9 +105,11 @@ describe('report controls', () => {
       }) } as Response
     })
     render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
     await screen.findByRole('heading', { name: 'Dynamic Test Company' })
     name = 'Renamed Ledger Company'
     await user.click(screen.getByRole('button', { name: 'Generate Statement' }))
     expect(await screen.findByRole('heading', { name: 'Renamed Ledger Company' })).toBeTruthy()
   })
+
 })
