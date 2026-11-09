@@ -26,6 +26,12 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
+      - name: Inspect production and development advisories
+        working-directory: frontend
+        run: |
+          npm audit --json > /tmp/full-audit.json || true
+          npm audit --omit=dev --json > /tmp/prod-audit.json || true
+          node -e 'for (const [label,file] of [["full","/tmp/full-audit.json"],["production","/tmp/prod-audit.json"]]) { const data=require(file); console.log(label+" audit totals: "+JSON.stringify(data.metadata?.vulnerabilities)); for (const [name,item] of Object.entries(data.vulnerabilities||{})) console.log(JSON.stringify({scope:label,name,severity:item.severity,isDirect:item.isDirect,range:item.range,via:item.via,fixAvailable:item.fixAvailable})); }'
       - name: Test UI controls
         working-directory: frontend
         run: npm test
