@@ -9,7 +9,11 @@ const pythonInVenv = join(root, 'backend', '.venv', isWindows ? 'Scripts/python.
 const python = process.env.PYTHON || pythonInVenv
 
 if (!process.env.PYTHON && !existsSync(pythonInVenv)) {
-  console.error('Backend virtual environment not found. Follow the README one-time installation steps.')
+  console.error('Backend virtual environment not found. Run these commands from the repository root:')
+  console.error(isWindows
+    ? '  python -m venv backend/.venv\n  .\\backend\\.venv\\Scripts\\python.exe -m pip install -r backend/requirements-dev.txt'
+    : '  python3 -m venv backend/.venv\n  backend/.venv/bin/python -m pip install -r backend/requirements-dev.txt')
+  console.error('  npm ci --prefix frontend\n  npm run dev')
   process.exit(1)
 }
 
@@ -21,7 +25,7 @@ let running = 0
 function killTree(child) {
   if (!child.pid || child.exitCode !== null) return
   if (isWindows) {
-    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+    spawnSync(join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'), ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true })
   } else {
     try { process.kill(-child.pid, 'SIGTERM') } catch { /* Already exited */ }
   }
@@ -37,7 +41,7 @@ function stop(code = 0) {
 
 function start(name, command, args, cwd) {
   const child = spawn(command, args, {
-    cwd, stdio: 'inherit', detached: !isWindows, windowsHide: false,
+    cwd, stdio: 'inherit', detached: !isWindows, windowsHide: true,
     env: process.env,
   })
   services.push(child)
@@ -46,7 +50,8 @@ function start(name, command, args, cwd) {
     console.error(`[${name}] Failed to launch:`, error.message)
     stop(1)
   })
-  child.on('exit', (code, signal) => {
+  // `close` also fires after a failed spawn, which has no `exit` event.
+  child.on('close', (code, signal) => {
     running--
     if (!terminating) {
       console.error(`[${name}] exited (${code ?? signal}). Stopping both services.`)
@@ -61,9 +66,5 @@ process.on('SIGTERM', () => stop(0))
 
 start('FastAPI', python, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8000', '--reload'], join(root, 'backend'))
 if (!terminating) {
-  if (isWindows) {
-    start('Vite', 'cmd.exe', ['/d', '/s', '/c', 'npm run dev'], join(root, 'frontend'))
-  } else {
-    start('Vite', 'npm', ['run', 'dev'], join(root, 'frontend'))
-  }
+  start('Vite', process.execPath, [join(root, 'frontend', 'node_modules', 'vite', 'bin', 'vite.js'), '--host', '127.0.0.1'], join(root, 'frontend'))
 }
