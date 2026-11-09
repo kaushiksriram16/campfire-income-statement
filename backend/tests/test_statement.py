@@ -108,3 +108,89 @@ def test_invalid_ledger_rejected(ledger):
     bad["journal_entries"][0]["lines"][0]["account"] = "missing"
     with pytest.raises(LedgerError, match="unknown account"):
         validate_ledger(bad)
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("number", []), ("number", {}), ("number", None), ("number", 4000),
+    ("name", []), ("name", None), ("type", []), ("type", {}),
+    ("type", None), ("type", False), ("subtype", []),
+    ("subtype", {}), ("subtype", None), ("subtype", "balance_sheet"),
+    ("is_active", "yes"), ("is_active", None),
+])
+def test_invalid_account_fields_are_controlled(ledger, field, value):
+    modified = deepcopy(ledger)
+    modified["accounts"][6][field] = value
+    with pytest.raises(LedgerError):
+        validate_ledger(modified)
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("id", []), ("id", None), ("id", 123), ("date", []),
+    ("date", None), ("status", []), ("status", {}), ("status", 7),
+    ("status", "approved"), ("lines", {}), ("lines", []),
+])
+def test_invalid_entry_fields_are_controlled(ledger, field, value):
+    modified = deepcopy(ledger)
+    modified["journal_entries"][1][field] = value
+    with pytest.raises(LedgerError):
+        validate_ledger(modified)
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("account", []), ("account", {}), ("account", None),
+    ("account", "unknown"), ("debit", []), ("debit", {}),
+    ("debit", True), ("debit", None), ("debit", "NaN"),
+    ("debit", "Infinity"), ("debit", "3.141"), ("debit", "-2.00"),
+    ("debit", "10000000000000000.00"),
+])
+def test_invalid_line_fields_are_controlled(ledger, field, value):
+    modified = deepcopy(ledger)
+    modified["journal_entries"][1]["lines"][0][field] = value
+    with pytest.raises(LedgerError):
+        validate_ledger(modified)
+
+
+def test_missing_fields_duplicate_ids_and_zero_lines(ledger):
+    bad = deepcopy(ledger)
+    del bad["accounts"][0]["type"]
+    with pytest.raises(LedgerError):
+        validate_ledger(bad)
+    bad = deepcopy(ledger)
+    bad["accounts"][1]["number"] = bad["accounts"][0]["number"]
+    with pytest.raises(LedgerError):
+        validate_ledger(bad)
+    bad = deepcopy(ledger)
+    bad["journal_entries"][1]["id"] = bad["journal_entries"][0]["id"]
+    with pytest.raises(LedgerError):
+        validate_ledger(bad)
+    bad = deepcopy(ledger)
+    bad["journal_entries"][1]["lines"][0]["debit"] = "0.00"
+    with pytest.raises(LedgerError):
+        validate_ledger(bad)
+
+
+@pytest.mark.parametrize(("payload"), [[], None, "text", 7, {}, {"accounts": {}, "journal_entries": []}])
+def test_invalid_ledger_root( payload):
+    with pytest.raises(LedgerError):
+        validate_ledger(payload)
+
+
+def test_large_values_supported_and_repeated_exactly(ledger):
+    modified = deepcopy(ledger)
+    for index in range(150):
+        modified["journal_entries"].append({
+            "id": f"TEST-HUGE-{index}", "date": "2027-01-01", "status": "posted",
+            "lines": [
+                {"account": "1000", "debit": "9999999999999999.99", "credit": "0.00"},
+                {"account": "4000", "debit": "0.00", "credit": "9999999999999999.99"},
+            ],
+        })
+    validate_ledger(modified)
+    result = build_statement(modified, "2027-01-01", "2027-01-01")
+    assert result["summary"]["net_income"] == "1499999999999999998.50"
+
+
+def test_beyond_max_magnitude_is_rejected(ledger):
+    modified = deepcopy(ledger)
+    modified["journal_entries"][1]["lines"][0]["debit"] = "99999999999999999.99"
+    with pytest.raises(LedgerError, match="maximum supported"):
+        validate_ledger(modified)

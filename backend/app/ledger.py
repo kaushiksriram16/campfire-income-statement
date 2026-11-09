@@ -1,10 +1,11 @@
 """Loading and validating the source-of-truth ledger on every request."""
 import json
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
 
 LEDGER_PATH = Path(__file__).resolve().parents[2] / "ledger.json"
+MAX_LINE_AMOUNT = Decimal("9999999999999999.99")
 VALID_TYPES = {"asset", "liability", "equity", "revenue", "expense"}
 SUBTYPES = {
     "asset": {"balance_sheet"},
@@ -28,6 +29,8 @@ def parse_money(value):
         raise LedgerError("Invalid monetary value") from exc
     if not amount.is_finite() or amount.as_tuple().exponent < -2:
         raise LedgerError("Money must be finite with at most two decimal places")
+    if abs(amount) > MAX_LINE_AMOUNT:
+        raise LedgerError("Money exceeds maximum supported magnitude of 9999999999999999.99")
     return amount
 
 
@@ -44,6 +47,7 @@ def parse_date(value):
 
 
 def validate_ledger(data):
+    """Fail with LedgerError for malformed or inconsistent JSON, not TypeError/KeyError."""
     if not isinstance(data, dict):
         raise LedgerError("Ledger must be an object")
     if not isinstance(data.get("company"), str) or not data["company"].strip():
@@ -61,45 +65,62 @@ def validate_ledger(data):
             raise LedgerError("Account must be an object")
         number = account.get("number")
         kind = account.get("type")
-        if not isinstance(number, str) or not number or number in account_numbers:
+        subtype = account.get("subtype")
+        if not isinstance(number, str) or not number.strip() or number in account_numbers:
             raise LedgerError("Account numbers must be unique nonempty strings")
         if not isinstance(account.get("name"), str) or not account["name"].strip():
             raise LedgerError("Account name is required")
-        if kind not in VALID_TYPES or account.get("subtype") not in SUBTYPES[kind]:
-            raise LedgerError(f"Invalid account classification: {number}")
+        if not isinstance(kind, str) or kind not in VALID_TYPES:
+            raise LedgerError(f"Invalid account type: {number}")
+        if not isinstance(subtype, str) or subtype not in SUBTYPES[kind]:
+            raise LedgerError(f"Invalid account subtype: {number}")
         if not isinstance(account.get("is_active"), bool):
             raise LedgerError("Account is_active must be boolean")
         account_numbers.add(number)
 
     seen_ids = set()
     for entry in entries:
-        if not isinstance(entry, dict) or not isinstance(entry.get("id"), str):
-            raise LedgerError("Invalid journal entry")
-        if entry["id"] in seen_ids:
+        if not isinstance(entry, dict):
+            raise LedgerError("Journal entry must be an object")
+        entry_id = entry.get("id")
+        if not isinstance(entry_id, str) or not entry_id.strip():
+            raise LedgerError("Journal entry ID must be a nonempty string")
+        if entry_id in seen_ids:
             raise LedgerError("Duplicate journal entry ID")
-        seen_ids.add(entry["id"])
+        seen_ids.add(entry_id)
         try:
             parse_date(entry.get("date"))
         except ValueError as exc:
-            raise LedgerError(f"Invalid entry date: {entry['id']}") from exc
-        if entry.get("status") not in {"posted", "draft", "void"}:
-            raise LedgerError("Invalid entry status")
+            raise LedgerError(f"Invalid entry date: {entry_id}") from exc
+        status = entry.get("status")
+        if not isinstance(status, str) or status not in {"posted", "draft", "void"}:
+            raise LedgerError(f"Invalid entry status: {entry_id}")
+        if "memo" in entry and not isinstance(entry["memo"], str):
+            raise LedgerError(f"Invalid journal memo: {entry_id}")
         lines = entry.get("lines")
         if not isinstance(lines, list) or len(lines) < 2:
             raise LedgerError("A journal entry needs at least two lines")
-        debits = Decimal("0")
-        credits = Decimal("0")
-        for line in lines:
-            if not isinstance(line, dict) or line.get("account") not in account_numbers:
-                raise LedgerError("Journal line refers to an unknown account")
-            debit = parse_money(line.get("debit"))
-            credit = parse_money(line.get("credit"))
-            if debit < 0 or credit < 0 or (debit and credit):
-                raise LedgerError("Journal line must have nonnegative debit or credit")
-            debits += debit
-            credits += credit
-        if debits != credits:
-            raise LedgerError(f"Unbalanced journal entry: {entry['id']}")
+
+        # Maximum line size is 18 significant digits. Reserve enough precision
+        # for summing every valid line without losing cents.
+        with localcontext() as context:
+            context.prec = max(context.prec, 20 + len(str(len(lines))))
+            debits = Decimal("0.00")
+            credits = Decimal("0.00")
+            for line in lines:
+                if not isinstance(line, dict):
+                    raise LedgerError("Journal line must be an object")
+                number = line.get("account")
+                if not isinstance(number, str) or number not in account_numbers:
+                    raise LedgerError("Journal line refers to an unknown account")
+                debit = parse_money(line.get("debit"))
+                credit = parse_money(line.get("credit"))
+                if debit < 0 or credit < 0 or bool(debit) == bool(credit):
+                    raise LedgerError("Exactly one of debit and credit must be positive")
+                debits += debit
+                credits += credit
+            if debits != credits:
+                raise LedgerError(f"Unbalanced journal entry: {entry_id}")
     return data
 
 

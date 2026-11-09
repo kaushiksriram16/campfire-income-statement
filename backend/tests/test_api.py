@@ -72,3 +72,24 @@ def test_bad_source_returns_500(tmp_path, monkeypatch):
         "start": "2026-01-01", "end": "2026-03-31"})
     assert response.status_code == 500
     assert "Invalid ledger" in response.json()["detail"]
+
+@pytest.mark.parametrize(("path", "value"), [
+    (("accounts", 0, "type"), []),
+    (("accounts", 0, "subtype"), {}),
+    (("journal_entries", 0, "status"), []),
+    (("journal_entries", 0, "lines", 0, "account"), {}),
+    (("journal_entries", 0, "lines", 0, "debit"), "NaN"),
+])
+def test_malformed_json_is_controlled_http_500(tmp_path, monkeypatch, path, value):
+    modified = deepcopy(ledger_module.load_ledger())
+    current = modified
+    for key in path[:-1]:
+        current = current[key]
+    current[path[-1]] = value
+    location = tmp_path / "invalid.json"
+    location.write_text(json.dumps(modified), encoding="utf-8")
+    monkeypatch.setattr(ledger_module, "LEDGER_PATH", location)
+    result = client.get("/income-statement", params={
+        "start": "2026-01-01", "end": "2026-03-31"})
+    assert result.status_code == 500
+    assert result.json()["detail"].startswith("Invalid ledger:")

@@ -1,5 +1,5 @@
 """Pure financial calculation, independent of FastAPI and filesystem."""
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 from .ledger import parse_date
 
@@ -27,6 +27,14 @@ def amount_string(amount):
 
 
 def build_statement(ledger, start, end):
+    """Calculate exactly within a precision context sized for this ledger."""
+    total_lines = sum(len(entry["lines"]) for entry in ledger["journal_entries"])
+    with localcontext() as context:
+        context.prec = max(context.prec, 20 + len(str(total_lines)))
+        return _calculate_statement(ledger, start, end)
+
+
+def _calculate_statement(ledger, start, end):
     """Summarize posted lines inclusively. Revenue credits and expense debits increase results."""
     start_date = parse_date(start) if isinstance(start, str) else start
     end_date = parse_date(end) if isinstance(end, str) else end
