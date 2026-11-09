@@ -94,7 +94,7 @@ The default report is Q1 2026, but any valid dates from year 0001 to 9999 are ac
 
 ## Money and accounting rules
 
-Ledger journal-line debits and credits must be finite, nonnegative decimal strings representing at most two fractional digits and at most **9,999,999,999,999,999.99** per line. Larger values are rejected as invalid input. The calculation uses a temporary Decimal precision sized to the number of journal lines, so valid repeated large amounts aggregate exactly without silent rounding. The React formatter never converts money strings to floating point.
+Ledger journal-line debits and credits must be finite, nonnegative plain decimal strings (no exponent notation or separators) with at most two fractional digits and at most **9,999,999,999,999,999.99** per line. Larger values are rejected as invalid input. The calculation uses a temporary Decimal precision sized to the number of journal lines, so valid repeated large amounts aggregate exactly without silent rounding. The React formatter never converts money strings to floating point.
 
 Only posted transactions are counted. Revenue and other income increase with credits; expenses increase with debits. Contra-revenue debits lower revenue, and expense credits reduce expenses. The account subtype determines the statement section. Historical posted activity in inactive accounts remains included. Balance-sheet account balances do not enter the P&L.
 

@@ -56,9 +56,9 @@ jobs:
       - name: Check root startup script
         run: |
           set -e
-          node scripts/dev.mjs >/tmp/campfire-dev.log 2>&1 &
+          setsid npm run dev >/tmp/campfire-dev.log 2>&1 &
           server_pid=$!
-          trap 'kill -TERM "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          trap 'kill -TERM -- "-$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
           ready=0
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/openapi.json >/dev/null 2>&1 && curl -fsS http://127.0.0.1:5173/ >/dev/null 2>&1; then
@@ -69,7 +69,7 @@ jobs:
           done
           if [ "$ready" != 1 ]; then cat /tmp/campfire-dev.log; exit 1; fi
           curl -fsS 'http://127.0.0.1:5173/income-statement?start=2026-01-01&end=2026-03-31' | grep -q -- '-44480.14'
-          kill -TERM "$server_pid"
+          kill -TERM -- "-$server_pid"
           wait "$server_pid" || true
           trap - EXIT
           # Both servers must terminate after the startup script exits.

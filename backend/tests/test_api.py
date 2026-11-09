@@ -79,6 +79,7 @@ def test_bad_source_returns_500(tmp_path, monkeypatch):
     (("journal_entries", 0, "status"), []),
     (("journal_entries", 0, "lines", 0, "account"), {}),
     (("journal_entries", 0, "lines", 0, "debit"), "NaN"),
+    (("journal_entries", 0, "lines", 0, "debit"), "1e2"),
 ])
 def test_malformed_json_is_controlled_http_500(tmp_path, monkeypatch, path, value):
     modified = deepcopy(ledger_module.load_ledger())

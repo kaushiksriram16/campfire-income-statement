@@ -140,7 +140,9 @@ def test_invalid_entry_fields_are_controlled(ledger, field, value):
     ("account", "unknown"), ("debit", []), ("debit", {}),
     ("debit", True), ("debit", None), ("debit", "NaN"),
     ("debit", "Infinity"), ("debit", "3.141"), ("debit", "-2.00"),
-    ("debit", "10000000000000000.00"),
+    ("debit", "10000000000000000.00"), ("debit", "1e2"),
+    ("debit", "1_000.00"), ("debit", " 1.00 "), ("debit", "-0.00"),
+    ("debit", "+1.00"), ("debit", "001.00"),
 ])
 def test_invalid_line_fields_are_controlled(ledger, field, value):
     modified = deepcopy(ledger)

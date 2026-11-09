@@ -1,5 +1,6 @@
 """Loading and validating the source-of-truth ledger on every request."""
 import json
+import re
 from datetime import date
 from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
@@ -21,8 +22,8 @@ class LedgerError(ValueError):
 
 
 def parse_money(value):
-    if not isinstance(value, str):
-        raise LedgerError("Money must be a decimal string")
+    if not isinstance(value, str) or not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.[0-9]{1,2})?", value):
+        raise LedgerError("Money must be a nonnegative plain decimal string with at most two decimals")
     try:
         amount = Decimal(value)
     except InvalidOperation as exc:
