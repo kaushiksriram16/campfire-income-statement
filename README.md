@@ -6,7 +6,7 @@ An accountant-readable income statement application for any inclusive reporting 
 
 - **Minimum supported:** Python 3.12+, Node.js >=22.12.0, a compatible npm 10+; React 19, Vite 7, TypeScript 5.9. Use `backend/requirements*.txt` and `frontend/package-lock.json` for exact dependency versions.
 - **Verified in Linux GitHub Actions:** Python **3.12.16**, Node.js **22.23.4**, npm **10.9.9**; FastAPI **0.162.2**, Uvicorn **0.54.0**, pytest **9.2.0**, HTTPX **0.28.1**; React **19.3.1**, Vite **7.3.7**, TypeScript **5.9.3**, Vitest **4.1.12**, Playwright **1.65.0**, and **@rollup/wasm-node 4.68.1**.
-- **Candidate's Windows development machine:** exact Python, Node.js, npm and policy configuration **not accessible for verification here**. Check with `python --version`, `node --version`, `npm --version`.
+- **Local Windows development machine:** Python **3.14.2**, Node.js **24.18.0**, npm **10.2.3**. Check your installed versions with `python --version`, `node --version`, `npm --version`.
 - No database, authentication, Docker, custom calendar or deployment dependencies.
 
 GitHub Actions also verifies clean installation, unit tests and builds on hosted Windows and macOS. Hosted Windows runs a real Chromium browser-to-API smoke test. These checks cannot reproduce the candidate's restricted device policy.
@@ -31,13 +31,14 @@ cd ..
 
 ```powershell
 cd backend
-py -3 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements-dev.txt
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 cd ..\frontend
 npm ci
 cd ..
 ```
+
+These Windows commands use the virtual environment's Python directly, so PowerShell script activation is not required. If `python` is unavailable but the Python launcher is installed, use `py -3` for the environment creation command.
 
 ## Run both servers
 
@@ -49,7 +50,11 @@ npm run dev
 
 This starts FastAPI at **http://127.0.0.1:8000** and Vite at **http://127.0.0.1:5173**. The development proxy forwards requests from React to FastAPI. Python reload and Vite hot reload remain enabled. Press **Ctrl+C** to stop both services. The root launcher is `scripts/dev.mjs` and does not contain Rollup-loader patches or any `ROLLUP_WASM_PATH` dependency.
 
+The root launcher invokes the installed Vite CLI directly through Node, matching the current frontend `dev` command without requiring a Windows command shell. Keep its Vite arguments aligned if you change `frontend/package.json`'s `dev` script; npm lifecycle hooks are not run by this direct invocation.
+
 Alternatively, start each service in separate terminals after installation:
+
+On Windows, the setup above does not activate the environment. From `backend/`, use `.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload` for the backend, and `.\.venv\Scripts\python.exe -m pytest -v` for the backend tests below. Activation is optional.
 
 ```bash
 # In backend/, with its virtual environment activated
